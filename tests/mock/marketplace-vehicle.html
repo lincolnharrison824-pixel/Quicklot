@@ -11,7 +11,7 @@ window.clickedForbidden = false;
 const form = document.getElementById('form');
 const OPTIONS = {
   'Vehicle type': ['Car/Truck','Motorcycle','Powersport','RV/Camper','Trailer','Boat','Commercial/Industrial','Other'],
-  'Year': Array.from({length: 40}, (_, i) => String(2027 - i)),
+  'Year': Array.from({length: 128}, (_, i) => String(1900 + i)),
   'Make': ['Acura','BMW','Ford','Genesis','Honda','Hyundai','Toyota'],
   'Body style': ['Coupe','Truck','Sedan','Hatchback','SUV','Convertible','Wagon','Minivan','Small Car','Other'],
   'Exterior color': ['Black','Blue','Brown','Gold','Green','Grey','Pink','Purple','Red','Silver','Orange','White','Yellow','Charcoal','Off white','Tan','Beige','Burgundy','Turquoise'],
@@ -29,12 +29,24 @@ function combo(name) {
     const open = document.querySelector('[role=listbox]');
     if (open) { open.remove(); return; }
     const lb = document.createElement('div'); lb.setAttribute('role','listbox');
-    for (const o of OPTIONS[name]) {
-      const d = document.createElement('div'); d.setAttribute('role','option'); d.innerHTML = '<span>' + o + '</span>';
-      d.addEventListener('click', () => { state[name] = o; l.querySelector('.val').textContent = o; lb.remove(); if (name === 'Vehicle type') renderRest(); });
-      lb.appendChild(d);
-    }
-    document.body.appendChild(lb);
+    lb.style.cssText = 'max-height:200px;overflow-y:auto;position:fixed;top:40px;left:300px;background:#fff;width:200px';
+    const ROW = 25, list = OPTIONS[name];
+    const inner = document.createElement('div'); inner.style.cssText = 'position:relative;height:' + (list.length * ROW) + 'px';
+    lb.appendChild(inner);
+    // Only the rows in view exist, like Facebook's long menus.
+    const draw = () => {
+      inner.innerHTML = '';
+      const first = Math.floor(lb.scrollTop / ROW), last = Math.min(list.length, first + 10);
+      for (let k = first; k < last; k++) {
+        const o = list[k];
+        const d = document.createElement('div'); d.setAttribute('role','option'); d.innerHTML = '<span>' + o + '</span>';
+        d.style.cssText = 'position:absolute;top:' + (k * ROW) + 'px;height:' + ROW + 'px;left:0;right:0';
+        d.addEventListener('click', () => { state[name] = o; l.querySelector('.val').textContent = o; lb.remove(); if (name === 'Vehicle type') renderRest(); });
+        inner.appendChild(d);
+      }
+    };
+    lb.addEventListener('scroll', draw);
+    document.body.appendChild(lb); draw();
   });
   return l;
 }

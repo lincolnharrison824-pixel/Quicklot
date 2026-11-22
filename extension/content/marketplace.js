@@ -105,6 +105,8 @@
   // Open a dropdown, trying the ways Facebook's menus respond: a press on the label,
   // a press on its inner box, then the keyboard.
   async function openDropdown(label) {
+    // Let the previous menu finish closing, so its options aren't mistaken for this one's.
+    await waitFor(() => visibleOptions().length === 0, 2000);
     const ready = () => (visibleOptions().length ? visibleOptions() : null);
     const tries = [
       () => safeClick(label),
@@ -124,18 +126,53 @@
     return null;
   }
 
+  function scrollParent(el) {
+    for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+      const st = getComputedStyle(n);
+      if (/(auto|scroll)/.test(st.overflowY) && n.scrollHeight > n.clientHeight + 4) return n;
+    }
+    return null;
+  }
+
   async function choose(label, wantedList) {
-    const opts = await openDropdown(label);
+    let opts = await openDropdown(label);
     if (!opts) {
       document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       return null;
     }
     const wanted = wantedList.filter(Boolean).map(norm);
     const text = (o) => norm(o.innerText);
-    const hit =
-      opts.find((o) => wanted.includes(text(o))) ||
-      opts.find((o) => wanted.some((w) => text(o).startsWith(w))) ||
-      opts.find((o) => wanted.some((w) => w.length > 3 && text(o).includes(w)));
+    const match = (list) =>
+      list.find((o) => wanted.includes(text(o))) ||
+      list.find((o) => wanted.some((w) => text(o).startsWith(w))) ||
+      list.find((o) => wanted.some((w) => w.length > 3 && text(o).includes(w)));
+    let hit = match(opts);
+    if (!hit) {
+      // The menu may still be filling in. Look once more.
+      await sleep(700);
+      opts = visibleOptions();
+      hit = match(opts);
+    }
+    if (!hit && opts.length) {
+      // Long menus (like Year) only show part of the list. Scroll through it.
+      const scroller = scrollParent(opts[0]);
+      if (scroller) {
+        scroller.scrollTop = 0;
+        for (let i = 0; i < 60 && !hit; i++) {
+          await sleep(120);
+          hit = match(visibleOptions());
+          if (hit) break;
+          const before = scroller.scrollTop;
+          scroller.scrollTop += Math.max(120, scroller.clientHeight * 0.8);
+          if (scroller.scrollTop === before) {
+            await sleep(150);
+            hit = match(visibleOptions());
+            break;
+          }
+        }
+        if (hit) hit.scrollIntoView({ block: "center" });
+      }
+    }
     if (!hit) {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       safeClick(label); // close the list
@@ -270,7 +307,7 @@
     if (/electric/.test(t)) return ["Electric"];
     if (/diesel/.test(t)) return ["Diesel"];
     if (/flex/.test(t)) return ["Flex"];
-    return ["Gasoline", "Gas"];
+    return ["Gasoline", "Gas", "Petrol"];
   }
   const mapTrans = (t) => (/manual/i.test(t || "") ? ["Manual transmission", "Manual"] : t ? ["Automatic transmission", "Automatic"] : null);
 
@@ -353,7 +390,7 @@
   await fill(["Exterior color", "Exterior colour"], mapColor(car.exteriorColor), { missing: `Pick the closest color to "${car.exteriorColor || "unknown"}".` });
   await fill(["Interior color", "Interior colour"], mapColor(car.interiorColor), { missing: `Pick the closest color to "${car.interiorColor || "unknown"}".` });
   const fuel = mapFuel(car.fuelType);
-  await fill("Fuel type", fuel ? fuel[0] : "", { choices: fuel || undefined });
+  await fill(["Fuel type", "Fuel"], fuel ? fuel[0] : "", { choices: fuel || undefined });
   const trans = mapTrans(car.transmission);
   await fill("Transmission", trans ? trans[0] : "", { choices: trans || undefined });
   note("Vehicle condition", false, "Pick this yourself. QuickLot doesn't guess condition.");
