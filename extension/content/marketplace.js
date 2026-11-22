@@ -395,6 +395,9 @@
   await fill("Vehicle type", "Car/Truck", { choices: ["Car/Truck", "Car/truck", "Car / Truck"] });
   await sleep(800); // the rest of the form appears after the vehicle type is chosen
 
+  // Facebook's optional VIN box (the description never includes the VIN).
+  if (car.vin && findField(["VIN"])) await fill("VIN", car.vin, { choices: false });
+
   await addPhotos();
   await fill("Year", car.year ? String(car.year) : "");
   await fill("Make", car.make);
