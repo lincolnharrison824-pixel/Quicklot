@@ -42,7 +42,13 @@ function text(name, area) {
   const l = document.createElement('label');
   l.innerHTML = '<div><span>' + name + '</span></div>' + (area ? '<textarea></textarea>' : '<input type="text">');
   const i = l.querySelector('input,textarea');
-  i.addEventListener('input', () => { state[name] = i.value; });
+  i.addEventListener('input', () => {
+    if (name === 'Price' || name === 'Mileage') {
+      const digits = i.value.replace(/\D/g, '');
+      i.value = digits ? (name === 'Price' ? '$' : '') + Number(digits).toLocaleString('en-US') : '';
+    }
+    state[name] = i.value;
+  });
   return l;
 }
 function renderRest() {

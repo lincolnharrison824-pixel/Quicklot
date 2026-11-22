@@ -73,7 +73,14 @@
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
   }
+  // Facebook reformats numbers as you type ("32145" shows as "$32,145"), so numbers are
+  // compared by their digits only.
+  function sameValue(shown, wanted) {
+    if (/^\d+$/.test(String(wanted))) return String(shown).replace(/\D/g, "") === String(wanted);
+    return norm(shown) === norm(wanted);
+  }
   async function typeInto(input, value) {
+    const shown = () => (input.isContentEditable ? input.textContent : input.value);
     input.focus();
     await sleep(50);
     if (input.isContentEditable) {
@@ -82,11 +89,11 @@
     } else {
       input.select && input.select();
       const ok = document.execCommand("insertText", false, value);
-      if (!ok || input.value !== value) nativeSet(input, value);
+      if (!ok || !sameValue(shown(), value)) nativeSet(input, value);
     }
     input.blur();
-    await sleep(100);
-    return input.isContentEditable ? norm(input.textContent) === norm(value) : input.value === value;
+    await sleep(150);
+    return sameValue(shown(), value);
   }
 
   // ---------- Picking from dropdowns ----------
