@@ -31,6 +31,7 @@ await ctx.route("https://www.genesisofconway.com/inventoryphotos/**", (r) => r.f
 let [sw] = ctx.serviceWorkers();
 if (!sw) sw = await ctx.waitForEvent("serviceworker");
 const extId = sw.url().split("/")[2];
+console.error("extension id:", extId);
 
 const errors = [];
 const results = {};

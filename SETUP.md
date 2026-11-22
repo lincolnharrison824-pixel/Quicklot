@@ -21,7 +21,7 @@ Nothing in steps 2 to 5 charges you without you entering a card yourself.
 
 ## Step 1: Load the extension (free, about 5 minutes)
 
-1. Get the code on your computer. Open https://github.com/lincolnharrison824-pixel/quicklot, click the green **Code** button, then **Download ZIP**. Unzip it somewhere you'll keep it, like your Documents folder. Don't move the folder later: Chrome ties the extension's ID to the folder, and step 3 needs that ID to stay the same.
+1. Get the code on your computer. Open https://github.com/lincolnharrison824-pixel/quicklot, click the green **Code** button, then **Download ZIP**. Unzip it somewhere you'll keep it, like your Documents folder.
 2. In Chrome, open `chrome://extensions` (type it in the address bar).
 3. Turn on **Developer mode** with the switch at the top right.
 4. Click **Load unpacked** and pick the `extension` folder inside the unzipped `quicklot` folder.
@@ -44,7 +44,7 @@ If anything goes wrong, take a screenshot of the QuickLot panel and send it to m
 
 ## Step 3: Turn on Google sign-in (free)
 
-**Get your extension ID:** on `chrome://extensions`, the QuickLot card shows **ID: a long string of letters**. Copy it.
+**Your extension ID** is always `nfgdpjkijaefboopngejalcbgjiomdkd` (it's fixed in the code, so it doesn't change when you move or re-download the folder). If you loaded a version older than 0.2.0, remove that QuickLot card on `chrome://extensions` and click **Load unpacked** again so Chrome picks up the fixed ID.
 
 **Google side:**
 1. Go to https://console.cloud.google.com/projectcreate. Name it `QuickLot` and click **Create**.
@@ -54,7 +54,7 @@ If anything goes wrong, take a screenshot of the QuickLot panel and send it to m
 
 **Supabase side:**
 5. In Supabase, go to **Authentication**, then **Sign In / Providers**, then **Google**. Turn it on, paste the Client ID and Client secret, and click **Save**.
-6. Go to **Authentication**, then **URL Configuration**. Under **Redirect URLs**, click **Add URL** and paste `https://YOUR-EXTENSION-ID.chromiumapp.org/**`, using the ID you copied above. Click **Save**.
+6. Go to **Authentication**, then **URL Configuration**. Under **Redirect URLs**, click **Add URL** and paste `https://nfgdpjkijaefboopngejalcbgjiomdkd.chromiumapp.org/**`. Click **Save**.
 
 ## Step 4: AI key and the Vercel backend
 
