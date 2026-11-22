@@ -134,9 +134,13 @@
     return null;
   }
 
+  const seenOptions = {}; // for the support report: what a failed menu actually offered
   async function choose(label, wantedList) {
+    label.scrollIntoView({ block: "center" });
+    await sleep(150);
     let opts = await openDropdown(label);
     if (!opts) {
+      seenOptions[labelText(label)] = "menu did not open";
       document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       return null;
     }
@@ -174,6 +178,7 @@
       }
     }
     if (!hit) {
+      seenOptions[labelText(label)] = visibleOptions().slice(0, 15).map((o) => o.innerText.trim().slice(0, 30));
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       safeClick(label); // close the list
       await sleep(150);
@@ -238,7 +243,9 @@
   // ---------- Photos ----------
   async function addPhotos() {
     if (!photos || !photos.length) {
-      note("Photos", false, "No photos came through. Add them by hand.");
+      note("Photos", false, car.stockPhotosOnly
+        ? "This car has no lot photos on the dealer's site yet, only stock pictures. Add your own photos."
+        : "No photos came through. Add them by hand.");
       return;
     }
     const input = await waitFor(() => document.querySelector('input[type="file"][accept*="image"]'), 5000);
@@ -286,6 +293,14 @@
     for (const [re, name] of alias) if (re.test(t)) return name;
     return null;
   }
+  // Facebook spells some colors differently by region ("Gray" in the US, "Grey" elsewhere).
+  function colorVariants(c) {
+    if (!c) return undefined;
+    const v = [c];
+    if (c === "Grey") v.push("Gray");
+    if (c === "Off white") v.push("Off-white", "Off White");
+    return v;
+  }
   function mapBody(b) {
     const t = norm(b);
     if (!t) return null;
@@ -323,6 +338,7 @@
       url: location.pathname,
       results: results.map((r) => [r.field, r.ok ? "ok" : "check", r.note.slice(0, 60)]),
       labels,
+      seenOptions,
       fileInputs: document.querySelectorAll('input[type="file"]').length,
       comboboxes: document.querySelectorAll('[role="combobox"]').length,
     });
@@ -387,8 +403,13 @@
   await fill("Mileage", car.mileage ? String(Math.round(car.mileage)) : "", { missing: "Not on the dealer page. Please type the miles.", choices: false });
   await fill("Price", car.price ? String(Math.round(car.price)) : "", { missing: "No price on the dealer page. Please type it.", choices: false });
   await fill("Body style", mapBody(car.bodyType));
-  await fill(["Exterior color", "Exterior colour"], mapColor(car.exteriorColor), { missing: `Pick the closest color to "${car.exteriorColor || "unknown"}".` });
-  await fill(["Interior color", "Interior colour"], mapColor(car.interiorColor), { missing: `Pick the closest color to "${car.interiorColor || "unknown"}".` });
+  for (const [fieldNames, raw] of [
+    [["Exterior color", "Exterior colour"], car.exteriorColor],
+    [["Interior color", "Interior colour"], car.interiorColor],
+  ]) {
+    const c = mapColor(raw);
+    await fill(fieldNames, c, { choices: colorVariants(c), missing: `Pick the closest color to "${raw || "unknown"}".` });
+  }
   const fuel = mapFuel(car.fuelType);
   await fill(["Fuel type", "Fuel"], fuel ? fuel[0] : "", { choices: fuel || undefined });
   const trans = mapTrans(car.transmission);

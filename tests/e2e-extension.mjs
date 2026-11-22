@@ -14,6 +14,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const extPath = path.resolve(here, "../extension");
 const mockForm = fs.readFileSync(path.join(here, "mock/marketplace-vehicle.html"), "utf8");
 const car = JSON.parse(fs.readFileSync(path.join(here, "fixtures/gv70.json"), "utf8"));
+car.interiorColor = "Gray"; // Facebook US spells it Gray
 car.photos = [1, 2, 3].map((n) => `https://www.genesisofconway.com/inventoryphotos/21131/kmumadtb5pu123389/ip/${n}.jpg?width=1280`);
 // 1x1 JPEG
 const jpeg = Buffer.from("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=", "base64");

@@ -122,8 +122,11 @@
     .sort((a, b) => photoNumber(a) - photoNumber(b))
     .map((u) => u + "?width=1280");
 
+  const stockPhotosOnly = photos.length === 0 && Boolean(document.querySelector('img[src*="/assets/stock/"], source[srcset*="/assets/stock/"]'));
+
   return {
     ok: true,
+    stockPhotosOnly,
     source: "dealeron",
     url: location.href,
     dealer: clean(window.DlronGlobal_DealerName) || "",

@@ -206,9 +206,10 @@ function renderCar(error) {
         <div><span>Price</span><b>${car.price ? esc(money(car.price)) : "Not shown"}</b></div>
         <div><span>Miles</span><b>${car.mileage ? esc(miles(car.mileage)) : "Not shown"}</b></div>
         <div><span>Color</span><b>${esc(car.exteriorColor || "Not shown")}</b></div>
-        <div><span>Photos</span><b>${car.photos.length ? Math.min(car.photos.length, 20) + (car.photos.length > 20 ? " of " + car.photos.length : "") : "None found"}</b></div>
+        <div><span>Photos</span><b>${car.photos.length ? Math.min(car.photos.length, 20) + (car.photos.length > 20 ? " of " + car.photos.length : "") : car.stockPhotosOnly ? "Stock only" : "None found"}</b></div>
       </div>
     </div>
+    ${!car.photos.length ? `<div class="warn">${car.stockPhotosOnly ? "The dealer site only has stock pictures for this car, not real photos." : "No photos found on this page."} You'll need to add photos on Marketplace yourself.</div>` : ""}
     ${needPrice ? `<label class="field">Asking price<input type="number" id="price" placeholder="e.g. 32145" /></label>` : ""}
     ${needMiles ? `<label class="field">Miles<input type="number" id="miles" placeholder="e.g. 46696" /></label>` : ""}
     ${draft.description
