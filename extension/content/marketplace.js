@@ -22,8 +22,19 @@
   function safeClick(el) {
     const text = norm(el.innerText || el.getAttribute("aria-label"));
     if (FORBIDDEN.test(text)) throw new Error("QuickLot refused to click " + text);
+    // Facebook's menus listen for the full press sequence, not just "click".
+    const r = el.getBoundingClientRect();
+    const at = { bubbles: true, cancelable: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+    el.dispatchEvent(new PointerEvent("pointerdown", { ...at, pointerType: "mouse" }));
+    el.dispatchEvent(new MouseEvent("mousedown", at));
+    el.dispatchEvent(new PointerEvent("pointerup", { ...at, pointerType: "mouse" }));
+    el.dispatchEvent(new MouseEvent("mouseup", at));
     el.click();
   }
+  const isVisible = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
 
   async function waitFor(fn, timeout = 4000, step = 100) {
     const end = Date.now() + timeout;
@@ -80,11 +91,34 @@
 
   // ---------- Picking from dropdowns ----------
   function visibleOptions() {
-    return [...document.querySelectorAll('[role="option"]')].filter((o) => o.offsetParent !== null);
+    return [...document.querySelectorAll('[role="option"], [role="menuitemradio"], [role="menuitem"]')].filter(
+      (o) => isVisible(o) && (!panel() || !panel().contains(o)),
+    );
   }
+  // Open a dropdown, trying the ways Facebook's menus respond: a press on the label,
+  // a press on its inner box, then the keyboard.
+  async function openDropdown(label) {
+    const ready = () => (visibleOptions().length ? visibleOptions() : null);
+    const tries = [
+      () => safeClick(label),
+      () => safeClick(label.querySelector('[role="button"], [aria-haspopup], div') || label),
+      () => {
+        label.focus();
+        for (const key of ["Enter", "ArrowDown", " "]) {
+          label.dispatchEvent(new KeyboardEvent("keydown", { key, code: key === " " ? "Space" : key, bubbles: true }));
+        }
+      },
+    ];
+    for (const attempt of tries) {
+      attempt();
+      const opts = await waitFor(ready, 1500);
+      if (opts) return opts;
+    }
+    return null;
+  }
+
   async function choose(label, wantedList) {
-    safeClick(label);
-    const opts = await waitFor(() => (visibleOptions().length ? visibleOptions() : null), 3000);
+    const opts = await openDropdown(label);
     if (!opts) {
       document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       return null;
@@ -233,6 +267,23 @@
   }
   const mapTrans = (t) => (/manual/i.test(t || "") ? ["Manual transmission", "Manual"] : t ? ["Automatic transmission", "Automatic"] : null);
 
+  // ---------- A short report the user can paste back if fields fail ----------
+  function diagnostics() {
+    const labels = labelElements().filter(isVisible).map((l) => ({
+      text: labelText(l).slice(0, 40),
+      role: l.getAttribute("role") || "",
+      hasInput: Boolean(l.querySelector("input:not([type=file]), textarea, [contenteditable=true]")),
+    }));
+    return JSON.stringify({
+      quicklot: chrome.runtime.getManifest().version,
+      url: location.pathname,
+      results: results.map((r) => [r.field, r.ok ? "ok" : "check", r.note.slice(0, 60)]),
+      labels,
+      fileInputs: document.querySelectorAll('input[type="file"]').length,
+      comboboxes: document.querySelectorAll('[role="combobox"]').length,
+    });
+  }
+
   // ---------- The panel that tells the user what happened ----------
   function showPanel(done) {
     let el = panel();
@@ -259,12 +310,18 @@
       </div>
       <div style="margin-bottom:10px;color:#374151">${done ? "Done filling. Review every field, then click Next and Publish yourself. QuickLot never posts for you." : "Filling the form. Please wait..."}</div>
       ${rows}
-      ${done ? `<button id="quicklot-copy" style="margin-top:12px;width:100%;padding:10px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;font-weight:600;cursor:pointer">Copy description</button>` : ""}`;
+      ${done ? `<button id="quicklot-copy" style="margin-top:12px;width:100%;padding:10px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;font-weight:600;cursor:pointer">Copy description</button>
+        <button id="quicklot-report" style="margin-top:8px;width:100%;padding:10px;border-radius:10px;border:1px solid #d1d5db;background:#fff;color:#4b5563;cursor:pointer">Copy report for QuickLot support</button>` : ""}`;
     el.querySelector("#quicklot-close").onclick = () => el.remove();
     const copy = el.querySelector("#quicklot-copy");
     if (copy) copy.onclick = async () => {
       await navigator.clipboard.writeText(description);
       copy.textContent = "Copied";
+    };
+    const rep = el.querySelector("#quicklot-report");
+    if (rep) rep.onclick = async () => {
+      await navigator.clipboard.writeText(diagnostics());
+      rep.textContent = "Copied. Paste it into your QuickLot chat.";
     };
   }
   function escapeHtml(s) {

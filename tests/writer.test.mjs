@@ -26,3 +26,10 @@ test("sanitize removes VIN, stock number, footers and emojis", () => {
 test("title is year make model trim", () => {
   assert.equal(W.buildTitle(car), "2023 Genesis GV70 2.5T");
 });
+
+test("basic writer follows simple change notes", () => {
+  const r = W.rewriteLocal(car, "friendly", "make it shorter and more excited, no price");
+  assert.deepEqual(r.understood, ["more excited", "shorter", "no price"]);
+  assert.ok(!r.text.includes("$32,145"));
+  assert.match(r.text, /great one!/);
+});

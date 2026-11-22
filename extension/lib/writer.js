@@ -57,11 +57,11 @@
       .join(" ");
   }
 
-  function writeLocal(car, tone) {
+  function writeLocal(car, tone, opts = {}) {
     const name = [car.year, car.make, car.model, car.trim].filter(Boolean).join(" ");
-    const price = fmtMoney(car.price);
-    const miles = fmtMiles(car.mileage);
-    const feats = keyFeatures(car);
+    const price = opts.omitPrice ? "" : fmtMoney(car.price);
+    const miles = opts.omitMiles ? "" : fmtMiles(car.mileage);
+    const feats = keyFeatures(car, opts.maxFeatures || 5);
     const featLine = feats.length ? feats.join(", ") : "";
     const place = car.city ? car.city : "town";
     const color = car.exteriorColor || "";
@@ -92,6 +92,22 @@
     return sanitize(lines.filter((l) => l && l !== ".").join("\n"), car);
   }
 
+  // The free writer can follow a few simple change requests. Anything else needs the AI writer.
+  function rewriteLocal(car, tone, instructions) {
+    const t = String(instructions || "").toLowerCase();
+    const opts = {};
+    const understood = [];
+    let useTone = tone;
+    if (/excit|energy|hype|pumped|upbeat/.test(t)) { useTone = "energy"; understood.push("more excited"); }
+    else if (/friendl|warm|casual|personal/.test(t)) { useTone = "friendly"; understood.push("friendlier"); }
+    else if (/direct|straight|to the point|plain|simple/.test(t)) { useTone = "direct"; understood.push("more direct"); }
+    if (/short|brief|less|trim it|cut/.test(t)) { opts.maxFeatures = 2; understood.push("shorter"); }
+    else if (/long|more detail|more feature|add feature/.test(t)) { opts.maxFeatures = 8; understood.push("more features"); }
+    if (/(no|without|remove|drop|don'?t (mention|include|show)) (the )?price/.test(t)) { opts.omitPrice = true; understood.push("no price"); }
+    if (/(no|without|remove|drop|don'?t (mention|include|show)) (the )?(miles|mileage)/.test(t)) { opts.omitMiles = true; understood.push("no miles"); }
+    return { text: writeLocal(car, useTone, opts), understood };
+  }
+
   // Remove anything the listing rules forbid, whatever wrote the text.
   function sanitize(text, car) {
     let t = String(text || "");
@@ -108,6 +124,6 @@
     return t;
   }
 
-  root.QuickLotWriter = { TONES, buildTitle, writeLocal, sanitize, keyFeatures };
+  root.QuickLotWriter = { TONES, buildTitle, writeLocal, rewriteLocal, sanitize, keyFeatures };
   if (typeof module !== "undefined") module.exports = root.QuickLotWriter;
 })(typeof globalThis !== "undefined" ? globalThis : this);

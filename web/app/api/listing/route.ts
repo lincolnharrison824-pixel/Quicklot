@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   if (userError || !userData.user) return reply(origin, 401, { error: "Please sign in again." });
   const userId = userData.user.id;
 
-  let body: { car?: Car; tone?: Tone };
+  let body: { car?: Car; tone?: Tone; instructions?: string; previous?: string };
   try {
     body = await req.json();
   } catch {
@@ -59,6 +59,8 @@ export async function POST(req: Request) {
   }
   const car = body.car;
   const tone: Tone = body.tone === "direct" || body.tone === "energy" ? body.tone : "friendly";
+  const instructions = typeof body.instructions === "string" ? body.instructions.slice(0, 400) : "";
+  const previous = typeof body.previous === "string" ? body.previous.slice(0, 2000) : "";
   if (!car || !car.make || !car.model) return reply(origin, 400, { error: "Missing car details." });
 
   // Daily limit on AI-written listings, counted per user (rows are protected by row level security).
@@ -83,7 +85,7 @@ export async function POST(req: Request) {
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildUserMessage(car, tone) }],
+      messages: [{ role: "user", content: buildUserMessage(car, tone, instructions, previous) }],
     });
 
     if (response.stop_reason === "refusal") {

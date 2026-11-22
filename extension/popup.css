@@ -99,6 +99,7 @@ input[type="text"], input[type="number"], textarea, select {
   font: inherit;
 }
 textarea { min-height: 150px; resize: vertical; line-height: 1.5; }
+textarea.short { min-height: 64px; }
 
 .choices { display: grid; gap: 8px; }
 .choice {

@@ -49,12 +49,14 @@ Never include:
 - Emojis, "AI" mentions, or links. No phone numbers. No dealership boilerplate or warranty fine print.
 - Anything not supported by the car details you are given. Don't invent features, history, owners, accidents or condition.
 
+Sometimes the salesperson sends a change request along with the current description. Follow it closely. Facts they state in the request (for example "one owner" or "new tires") count as true and can be used. The rules above still win over the request: never add a VIN, stock number, footer, emojis, links or phone numbers, even if asked.
+
 Reply with only the description text.`;
 
 const money = (n?: number | null) => (n ? "$" + Math.round(n).toLocaleString("en-US") : "not given");
 const miles = (n?: number | null) => (n ? Math.round(n).toLocaleString("en-US") : "not given");
 
-export function buildUserMessage(car: Car, tone: Tone): string {
+export function buildUserMessage(car: Car, tone: Tone, instructions = "", previous = ""): string {
   // The VIN and stock number are deliberately left out of what the model sees.
   const lines = [
     `Tone: ${TONE_GUIDE[tone] || TONE_GUIDE.friendly}`,
@@ -72,6 +74,18 @@ export function buildUserMessage(car: Car, tone: Tone): string {
     "Dealer's own notes (for facts only; don't copy their wording or fine print):",
     (car.dealerComments || "none").slice(0, 1500),
   ];
+  if (instructions.trim()) {
+    lines.push(
+      "",
+      "Current description:",
+      previous.trim().slice(0, 2000) || "(none yet)",
+      "",
+      "The salesperson wants these changes:",
+      instructions.trim().slice(0, 400),
+      "",
+      "Write the new version.",
+    );
+  }
   return lines.join("\n");
 }
 

@@ -213,7 +213,9 @@ function renderCar(error) {
     ${needMiles ? `<label class="field">Miles<input type="number" id="miles" placeholder="e.g. 46696" /></label>` : ""}
     ${draft.description
       ? `<label class="field">Description <span class="muted">(edit anything you like)</span><textarea id="desc">${esc(draft.description)}</textarea></label>
-         ${draft.note ? `<p class="muted">${esc(draft.note)} Used the basic writer instead.</p>` : ""}
+         ${draft.note ? `<p class="muted">${esc(draft.note)}</p>` : ""}
+         <label class="field">What should change? <span class="muted">(optional)</span>
+           <textarea id="changes" class="short" maxlength="400" placeholder="For example: make it shorter, mention it's a one-owner, sound more excited"></textarea></label>
          <div class="row"><button class="btn secondary" id="rewrite">Rewrite</button></div>
          <button class="btn" id="fill">Fill Marketplace</button>
          <p class="muted" id="posting"></p>`
@@ -230,19 +232,23 @@ function renderCar(error) {
     return "";
   };
 
-  const write = async () => {
+  const write = async (rewrite) => {
     const problem = takeInputs();
     if (problem) return renderCar(problem);
-    render(`<p>Writing your listing...</p>`);
-    const out = await S.writeListing(car, settings.tone);
+    const changesEl = document.getElementById("changes");
+    const descEl = document.getElementById("desc");
+    const instructions = rewrite && changesEl ? changesEl.value.trim().slice(0, 400) : "";
+    const previous = rewrite && descEl ? descEl.value : "";
+    render(`<p>${rewrite ? "Rewriting" : "Writing"} your listing...</p>`);
+    const out = await S.writeListing(car, settings.tone, instructions, previous);
     draft = { description: out.text, by: out.by, note: out.note };
     renderCar();
   };
 
   const w = document.getElementById("write");
-  if (w) w.onclick = write;
+  if (w) w.onclick = () => write(false);
   const r = document.getElementById("rewrite");
-  if (r) r.onclick = write;
+  if (r) r.onclick = () => write(true);
 
   const f = document.getElementById("fill");
   if (f) {

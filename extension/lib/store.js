@@ -206,19 +206,33 @@
 
   // ---------- Listing writer (AI through the backend, or the free built-in writer) ----------
 
-  async function writeListing(car, tone) {
+  // instructions: what the user wants changed (optional). previous: the current description.
+  async function writeListing(car, tone, instructions = "", previous = "") {
+    const W = root.QuickLotWriter;
+    const basic = (note) => {
+      if (!instructions) return { text: W.writeLocal(car, tone), by: "basic", note };
+      const r = W.rewriteLocal(car, tone, instructions);
+      const heard = r.understood.length
+        ? "The basic writer made it " + r.understood.join(", ") + "."
+        : "The basic writer couldn't follow that note.";
+      return { text: r.text, by: "basic", note: (note ? note + " " : "") + heard + " Full notes like yours need the AI writer (SETUP.md steps 2 to 5)." };
+    };
     const session = await getSession();
     if (cfg.API_URL && session) {
-      const res = await fetch(cfg.API_URL.replace(/\/$/, "") + "/api/listing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
-        body: JSON.stringify({ car: { ...car, photos: undefined }, tone }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (res.ok && j.description) return { text: root.QuickLotWriter.sanitize(j.description, car), by: "ai" };
-      return { text: root.QuickLotWriter.writeLocal(car, tone), by: "basic", note: j.error || "The writer couldn't be reached." };
+      try {
+        const res = await fetch(cfg.API_URL.replace(/\/$/, "") + "/api/listing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+          body: JSON.stringify({ car: { ...car, photos: undefined }, tone, instructions, previous }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok && j.description) return { text: W.sanitize(j.description, car), by: "ai" };
+        return basic((j.error || "The AI writer couldn't be reached.") + " Used the basic writer.");
+      } catch (_) {
+        return basic("The AI writer couldn't be reached. Used the basic writer.");
+      }
     }
-    return { text: root.QuickLotWriter.writeLocal(car, tone), by: "basic" };
+    return basic("");
   }
 
   root.QuickLotStore = {
