@@ -14,9 +14,9 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const DAILY_LIMIT = Number(process.env.DAILY_LISTING_LIMIT || 40);
 // Written listings per person per calendar month (UTC). Keeps one heavy user from running up the bill.
 const MONTHLY_LIMIT = Number(process.env.MONTHLY_LISTING_LIMIT || 400);
-// The writer model. Haiku is plenty for a short listing and costs a small fraction of Opus.
-// Set WRITER_MODEL on Vercel to switch back (for example to claude-opus-5-5) without a code change.
-const WRITER_MODEL = process.env.WRITER_MODEL || "claude-haiku-5-5";
+// The writer model. Opus writes the most natural listings and costs under a cent each.
+// Set WRITER_MODEL on Vercel (for example to claude-haiku-5-5, about 30x cheaper) to switch without a code change.
+const WRITER_MODEL = process.env.WRITER_MODEL || "claude-opus-5-5";
 // Models that support the server-side refusal fallback.
 const HAS_SERVER_FALLBACK = /^claude-(opus-5|fable-5|sonnet-5-5)/.test(WRITER_MODEL);
 
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
   let text = "";
   try {
     let response = await write(WRITER_MODEL, HAS_SERVER_FALLBACK);
-    // Haiku has no server-side fallback, so retry a declined request once on Opus.
+    // Models without the server-side fallback (such as Haiku) retry a declined request once on Opus.
     if (response.stop_reason === "refusal" && !HAS_SERVER_FALLBACK) {
       response = await write("claude-opus-5-5", true);
     }
