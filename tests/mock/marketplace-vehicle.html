@@ -1,0 +1,80 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Mock Marketplace vehicle form</title>
+<style>label{display:block;margin:8px;border:1px solid #ccc;padding:6px}[role=listbox]{border:1px solid #888}[role=option]{padding:4px}</style>
+</head><body>
+<!-- A stand-in for Facebook's vehicle form, built from the same label patterns.
+     "state" only changes through input/change events and clicks, like a React form. -->
+<div role="main" id="form"></div>
+<script>
+window.state = { photos: 0 };
+window.clickedForbidden = false;
+const form = document.getElementById('form');
+const OPTIONS = {
+  'Vehicle type': ['Car/Truck','Motorcycle','Powersport','RV/Camper','Trailer','Boat','Commercial/Industrial','Other'],
+  'Year': Array.from({length: 128}, (_, i) => String(1900 + i)),
+  'Make': ['Acura','BMW','Ford','Genesis','Honda','Hyundai','Toyota'],
+  'Body style': ['Coupe','Truck','Sedan','Hatchback','SUV','Convertible','Wagon','Minivan','Small Car','Other'],
+  'Exterior color': ['Black','Blue','Brown','Gold','Green','Gray','Pink','Purple','Red','Silver','Orange','White','Yellow','Charcoal','Off white','Tan','Beige','Burgundy','Turquoise'],
+  'Interior color': ['Black','Blue','Brown','Gold','Green','Gray','Pink','Purple','Red','Silver','Orange','White','Yellow','Charcoal','Off white','Tan','Beige','Burgundy','Turquoise'],
+  'Vehicle condition': ['Excellent','Very good','Good','Fair','Poor'],
+  'Fuel type': ['Diesel','Electric','Gasoline','Flex','Hybrid','Petrol','Plug-in hybrid','Other'],
+  'Transmission': ['Manual transmission','Automatic transmission'],
+};
+function combo(name) {
+  const l = document.createElement('label');
+  l.setAttribute('role', 'combobox'); l.setAttribute('aria-label', name); l.tabIndex = 0;
+  l.innerHTML = '<span>' + name + '</span> <i class="val"></i>';
+  l.addEventListener('click', (e) => {
+    if (e.target.closest('[role=listbox]')) return;
+    const open = document.querySelector('[role=listbox]');
+    if (open) { open.remove(); return; }
+    const lb = document.createElement('div'); lb.setAttribute('role','listbox');
+    lb.style.cssText = 'max-height:200px;overflow-y:auto;position:fixed;top:40px;left:300px;background:#fff;width:200px';
+    const ROW = 25, list = OPTIONS[name];
+    const inner = document.createElement('div'); inner.style.cssText = 'position:relative;height:' + (list.length * ROW) + 'px';
+    lb.appendChild(inner);
+    // Only the rows in view exist, like Facebook's long menus.
+    const draw = () => {
+      inner.innerHTML = '';
+      const first = Math.floor(lb.scrollTop / ROW), last = Math.min(list.length, first + 10);
+      for (let k = first; k < last; k++) {
+        const o = list[k];
+        const d = document.createElement('div'); d.setAttribute('role','option'); d.innerHTML = '<span>' + o + '</span>';
+        d.style.cssText = 'position:absolute;top:' + (k * ROW) + 'px;height:' + ROW + 'px;left:0;right:0';
+        d.addEventListener('click', () => { state[name] = o; l.querySelector('.val').textContent = o; lb.remove(); if (name === 'Vehicle type') renderRest(); });
+        inner.appendChild(d);
+      }
+    };
+    lb.addEventListener('scroll', draw);
+    document.body.appendChild(lb); draw();
+  });
+  return l;
+}
+function text(name, area) {
+  const l = document.createElement('label');
+  l.innerHTML = '<div><span>' + name + '</span></div>' + (area ? '<textarea></textarea>' : '<input type="text">');
+  const i = l.querySelector('input,textarea');
+  i.addEventListener('input', () => {
+    if (name === 'Price' || name === 'Mileage') {
+      const digits = i.value.replace(/\D/g, '');
+      i.value = digits ? (name === 'Price' ? '$' : '') + Number(digits).toLocaleString('en-US') : '';
+    }
+    state[name] = i.value;
+  });
+  return l;
+}
+function renderRest() {
+  if (document.getElementById('rest')) return;
+  const rest = document.createElement('div'); rest.id = 'rest';
+  const f = document.createElement('input'); f.type = 'file'; f.accept = 'image/*,image/heif,image/heic'; f.multiple = true;
+  f.addEventListener('change', () => { state.photos = f.files.length; });
+  rest.append(f, combo('Year'), combo('Make'), text('Model'), text('Mileage'), text('Price'), combo('Body style'),
+    combo('Exterior color'), combo('Interior color'), combo('Vehicle condition'), combo('Fuel type'), combo('Transmission'), text('Description', true));
+  const next = document.createElement('div'); next.setAttribute('role','button'); next.innerHTML = '<span>Next</span>';
+  next.addEventListener('click', () => { window.clickedForbidden = true; });
+  rest.appendChild(next);
+  form.appendChild(rest);
+}
+form.appendChild(text('VIN'));
+form.appendChild(combo('Vehicle type'));
+</script></body></html>

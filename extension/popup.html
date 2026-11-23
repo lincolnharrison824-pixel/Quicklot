@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>QuickLot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body data-theme="light" data-accent="blue">
+    <header class="top">
+      <span class="brand">QuickLot</span>
+      <nav>
+        <button class="link" id="nav-cars" hidden>My cars</button>
+        <button class="link" id="nav-settings" hidden>Settings</button>
+      </nav>
+    </header>
+
+    <main id="view"></main>
+
+    <script src="config.js"></script>
+    <script src="lib/writer.js"></script>
+    <script src="lib/store.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
