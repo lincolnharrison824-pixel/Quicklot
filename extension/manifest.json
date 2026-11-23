@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "QuickLot",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Turn a car on your dealership's website into a Facebook Marketplace listing. You review it and click Publish.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwhg0SWOAsN8JsUEcLvDd2D+LtIq0ubWjZlCLrndPgUwphr3UHEO7zOA6OWvxN/ER0SLExxR6QY2put8yXx4Ut7yzvvjwRvbA0ayesoGL0AmRBE/onm9rYGMKjjdA1GZqrCsnwY+H637kCgCiDJ8UO9gGnR7zQLn6/2gwW8cI+jI5RvoNwM0dNjiZVrF16m0sQuNV6Xgy1Qmw7bFpBHMHUv6or6i3Lwdy9BvzPFQ0wLK9oR9Ax2C23q/gjqaka4hcgMBo8nd+XIm7XRwYY/5GuWzIapLsQsPPgPyMQYBcLWRE0z+gAyGDNfRonmriJvPgO2JbqeFgTY360I5UwUsvswIDAQAB",
   "action": {
