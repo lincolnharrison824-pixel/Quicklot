@@ -26,9 +26,9 @@ Nothing in steps 2 to 5 charges you without you entering a card yourself.
 3. Turn on **Developer mode** with the switch at the top right.
 4. Click **Load unpacked** and pick the `extension` folder inside the unzipped `quicklot` folder.
 5. Click the puzzle-piece icon at the right of Chrome's toolbar, then the pin next to **QuickLot**.
-6. Open a car on genesisofconway.com, for example the [2023 GV70](https://www.genesisofconway.com/used-+Conway-2023-Genesis-GV70-25T-KMUMADTB5PU123389), and click the QuickLot icon.
+6. Open a car on your dealership's website (any dealer site works), for example the [2023 GV70](https://www.genesisofconway.com/used-+Conway-2023-Genesis-GV70-25T-KMUMADTB5PU123389), and click the QuickLot icon. If the page doesn't show something Marketplace needs, like the price, QuickLot asks you to type it.
 7. Go through the short setup (risk warning, writing style, look). Then click **Write listing**, read it over, and click **Fill Marketplace**.
-8. QuickLot opens Marketplace's vehicle form and fills it. A QuickLot panel at the bottom right shows each field as **Filled** or **Check**. Fix anything marked Check, pick the condition, tick Clean title only if it's true, then click Next and Publish yourself. If you don't want to publish the test, close the tab instead.
+8. The first time you use a new dealer's site, Chrome may ask to let QuickLot download that site's photos. Click **Allow**. QuickLot then opens Marketplace's vehicle form and fills it. A QuickLot panel at the bottom right shows each field as **Filled** or **Check**. Fix anything marked Check, pick the condition, tick Clean title only if it's true, then click Next and Publish yourself. If you don't want to publish the test, close the tab instead.
 
 If anything goes wrong, take a screenshot of the QuickLot panel and send it to me. That panel shows exactly which fields worked.
 

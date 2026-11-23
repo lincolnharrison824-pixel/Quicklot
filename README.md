@@ -6,16 +6,16 @@ QuickLot helps car salespeople turn a vehicle on their dealership's website into
 
 | Folder | What it is |
 | --- | --- |
-| `extension/` | The Chrome extension. Reads a car off a DealerOn vehicle page, writes the listing, and fills Marketplace's vehicle form. |
+| `extension/` | The Chrome extension. Reads a car off a dealership's vehicle page (DealerOn, Dealer.com, Jazel, Dealer eProcess and most other dealer sites), writes the listing, and fills Marketplace's vehicle form. |
 | `web/` | A Next.js app for Vercel. Its `/api/listing` route writes the description with Claude for signed-in users. |
 | `supabase/migrations/` | Database tables: settings, My cars, and a log of written listings. |
-| `tests/` | Writer unit tests, plus an end-to-end test of the extension against a mock Marketplace form. |
+| `tests/` | Writer and page-reader tests, plus an end-to-end test of the extension against a mock Marketplace form. |
 
 ## Safety rules (built into the code)
 
 - QuickLot never clicks Next or Publish. The form filler refuses to click any button with those words. You review and publish every listing.
 - A daily cap (default 5, max 10) and spacing between posts (default 15 minutes).
-- It reads only the dealer page you have open and the Marketplace form it opened. No Messenger, no messages sent.
+- It reads only the dealer page you have open and the Marketplace form it opened. The first time it downloads photos from a dealer's photo website, Chrome asks you once to allow it. No Messenger, no messages sent.
 - A plain account-risk warning at setup. It makes no promise that accounts can't be restricted.
 
 ## Two ways to run it
@@ -29,6 +29,7 @@ See [SETUP.md](SETUP.md) for exact steps.
 
 ```bash
 node --test tests/writer.test.mjs   # listing writer rules
+node --test tests/reader.test.mjs   # reads copies of car pages from different dealer website companies
 node tests/e2e-extension.mjs        # loads the extension in Chromium and fills a mock Marketplace form
 cd web && npm install && npm run build
 ```

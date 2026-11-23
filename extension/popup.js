@@ -164,7 +164,7 @@ async function readActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !/^https?:/.test(tab.url || "")) return { ok: false, reason: "Open a car on your dealership's website first." };
   try {
-    const [res] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["lib/reader-dealeron.js"] });
+    const [res] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["lib/reader.js"] });
     return res && res.result ? res.result : { ok: false, reason: "Couldn't read this page." };
   } catch (_) {
     return { ok: false, reason: "QuickLot can't read this page. Open a car on your dealership's website." };
@@ -195,12 +195,31 @@ async function renderMain() {
   renderCar();
 }
 
+// Web addresses QuickLot needs permission to download this car's photos from.
+function photoOrigins(urls) {
+  const out = new Set();
+  for (const u of (urls || []).slice(0, 20)) {
+    try {
+      const url = new URL(u);
+      if (url.protocol === "https:" || url.protocol === "http:") out.add(url.protocol + "//" + url.host + "/*");
+    } catch (_) {}
+  }
+  return [...out];
+}
+
 function renderCar(error) {
+  const needYear = !car.year;
+  const needMake = !car.make;
+  const needModel = !car.model;
   const title = W.buildTitle(car);
   const needPrice = !car.price;
   const needMiles = !car.mileage;
   render(`
-    <h1>${esc(title)}</h1>
+    <h1>${esc(needYear || needMake || needModel ? "A few details missing" : title)}</h1>
+    ${needYear || needMake || needModel ? `<p class="muted">This website didn't show everything. Type what's missing.</p>` : ""}
+    ${needYear ? `<label class="field">Year<input type="number" id="year" placeholder="e.g. 2021" /></label>` : ""}
+    ${needMake ? `<label class="field">Make<input type="text" id="make" placeholder="e.g. Ford" /></label>` : ""}
+    ${needModel ? `<label class="field">Model<input type="text" id="model" placeholder="e.g. F-150" /></label>` : ""}
     <div class="card">
       <div class="facts">
         <div><span>Price</span><b>${car.price ? esc(money(car.price)) : "Not shown"}</b></div>
@@ -226,8 +245,17 @@ function renderCar(error) {
   const takeInputs = () => {
     const p = document.getElementById("price");
     const m = document.getElementById("miles");
+    const y = document.getElementById("year");
+    const mk = document.getElementById("make");
+    const md = document.getElementById("model");
     if (p && Number(p.value) > 0) car.price = Number(p.value);
     if (m && Number(m.value) > 0) car.mileage = Number(m.value);
+    if (y && Number(y.value) >= 1950 && Number(y.value) <= new Date().getFullYear() + 2) car.year = Number(y.value);
+    if (mk && mk.value.trim()) car.make = mk.value.trim().slice(0, 40);
+    if (md && md.value.trim()) car.model = md.value.trim().slice(0, 40);
+    if (!car.year) return "Type the year first. Marketplace needs it.";
+    if (!car.make) return "Type the make first. Marketplace needs it.";
+    if (!car.model) return "Type the model first. Marketplace needs it.";
     if (!car.price) return "Type the asking price first. Marketplace needs it.";
     if (!car.mileage) return "Type the miles first. Marketplace needs them.";
     return "";
@@ -263,9 +291,21 @@ function renderCar(error) {
       if (problem) return renderCar(problem);
       const description = W.sanitize(document.getElementById("desc").value, car);
       if (!description) return renderCar("The description is empty.");
+      // Chrome asks once per photo website (for example pictures.dealer.com) before QuickLot can
+      // download the photos. This must be the first thing that waits, so Chrome sees the click.
+      const origins = photoOrigins(car.photos);
+      if (origins.length) {
+        let granted = false;
+        try {
+          granted = await chrome.permissions.request({ origins }); // no prompt if already allowed
+        } catch (_) {
+          granted = false;
+        }
+        if (!granted) car.photos = [];
+      }
       f.disabled = true;
       f.textContent = "Opening Marketplace...";
-      const res = await chrome.runtime.sendMessage({ type: "startFill", car, title, description });
+      const res = await chrome.runtime.sendMessage({ type: "startFill", car, title: W.buildTitle(car), description });
       if (!res || !res.ok) {
         draft.description = description;
         return renderCar((res && res.error) || "Something went wrong. Try again.");
