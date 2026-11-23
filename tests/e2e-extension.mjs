@@ -11,7 +11,10 @@ process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = "1";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 const here = path.dirname(fileURLToPath(import.meta.url));
-const extPath = path.resolve(here, "../extension");
+// Test a copy of the extension in local mode (no sign-in), so it never touches the real backend.
+const extPath = fs.mkdtempSync(path.join(os.tmpdir(), "ql-ext-"));
+fs.cpSync(path.resolve(here, "../extension"), extPath, { recursive: true });
+fs.writeFileSync(path.join(extPath, "config.js"), 'self.QUICKLOT_CONFIG = { SUPABASE_URL: "", SUPABASE_ANON_KEY: "", API_URL: "" };\n');
 const mockForm = fs.readFileSync(path.join(here, "mock/marketplace-vehicle.html"), "utf8");
 const car = JSON.parse(fs.readFileSync(path.join(here, "fixtures/gv70.json"), "utf8"));
 car.interiorColor = "Gray"; // Facebook US spells it Gray
