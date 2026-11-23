@@ -12,6 +12,13 @@ export const runtime = "nodejs";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const DAILY_LIMIT = Number(process.env.DAILY_LISTING_LIMIT || 40);
+// Written listings per person per calendar month (UTC). Keeps one heavy user from running up the bill.
+const MONTHLY_LIMIT = Number(process.env.MONTHLY_LISTING_LIMIT || 400);
+// The writer model. Haiku is plenty for a short listing and costs a small fraction of Opus.
+// Set WRITER_MODEL on Vercel to switch back (for example to claude-opus-5-5) without a code change.
+const WRITER_MODEL = process.env.WRITER_MODEL || "claude-haiku-5-5";
+// Models that support the server-side refusal fallback.
+const HAS_SERVER_FALLBACK = /^claude-(opus-5|fable-5|sonnet-5-5)/.test(WRITER_MODEL);
 
 function cors(origin: string | null): Record<string, string> {
   // Only the Chrome extension calls this API. Every call also needs a valid sign-in token.
@@ -73,20 +80,37 @@ export async function POST(req: Request) {
   if ((count || 0) >= DAILY_LIMIT) {
     return reply(origin, 429, { error: `You've hit today's limit of ${DAILY_LIMIT} written listings.` });
   }
+  const startOfMonth = new Date(Date.UTC(startOfDay.getUTCFullYear(), startOfDay.getUTCMonth(), 1));
+  const { count: monthCount } = await supabase
+    .from("listing_generations")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", startOfMonth.toISOString());
+  if ((monthCount || 0) >= MONTHLY_LIMIT) {
+    return reply(origin, 429, { error: `You've hit this month's limit of ${MONTHLY_LIMIT} written listings.` });
+  }
 
   const client = new Anthropic();
-  let text = "";
-  try {
-    const response = await client.beta.messages.create({
-      model: "claude-opus-5-5",
+  const userMessage = buildUserMessage(car, tone, instructions, previous);
+  const write = (model: string, withFallback: boolean) =>
+    client.beta.messages.create({
+      model,
       max_tokens: 4000,
       output_config: { effort: "low" },
-      // If the main model declines, the API retries on a fallback model inside the same call.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      // On models that support it, a declined request is retried on a fallback model inside the same call.
+      ...(withFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildUserMessage(car, tone, instructions, previous) }],
+      messages: [{ role: "user", content: userMessage }],
     });
+  let text = "";
+  try {
+    let response = await write(WRITER_MODEL, HAS_SERVER_FALLBACK);
+    // Haiku has no server-side fallback, so retry a declined request once on Opus.
+    if (response.stop_reason === "refusal" && !HAS_SERVER_FALLBACK) {
+      response = await write("claude-opus-5-5", true);
+    }
+    console.log(
+      JSON.stringify({ event: "listing", model: response.model, input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens }),
+    );
 
     if (response.stop_reason === "refusal") {
       return reply(origin, 422, { error: "The writer couldn't write this one. Use the basic version instead." });
